@@ -1,8 +1,7 @@
 /* eslint-disable no-whitespace-before-property */
 
-import { assert }               from './assert';
-import { StorageContext }       from './StorageContext';
-import * as roles               from './roles';
+import * as roles                   from './roles';
+import { assert, StorageContext }   from 'fgc';
 import { action, computed, extendObservable, observable, runInAction } from "mobx";
 
 const STORE_SESSION = 'session';

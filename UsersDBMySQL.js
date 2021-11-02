@@ -1,11 +1,10 @@
 // Copyright (c) 2019 Fall Guy LLC All Rights Reserved.
 
-import { assert, ModelError, ERROR_STATUS }     from 'fgc';
-import * as roles                               from './roles';
-import bcrypt                                   from 'bcryptjs';
-import * as consts                              from 'consts';
-import crypto                                   from 'crypto';
-import _                                        from 'lodash';
+import { assert, ModelError, ERROR_STATUS, roles }      from 'fgc';
+import bcrypt                                           from 'bcryptjs';
+import * as consts                                      from 'consts';
+import crypto                                           from 'crypto';
+import _                                                from 'lodash';
 
 //================================================================//
 // UsersDBMySQL

@@ -1,12 +1,8 @@
 /* eslint-disable no-whitespace-before-property */
 
-import { assert }                               from './assert';
 import { FormErrors }                           from './FormErrors';
-import * as hooks                               from './hooks';
-import { SessionController }                    from './SessionController';
-import { SingleColumnContainerView }            from './SingleColumnContainerView';
-import * as util                                from './util';
 import * as consts                              from 'consts';
+import { assert, hooks, util }                  from 'fgc';
 import jwt_decode                               from 'jwt-decode';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
 import { observer }                             from 'mobx-react';

@@ -1,10 +1,8 @@
 /* eslint-disable no-whitespace-before-property */
 
-import { assert }                               from './assert';
-import * as roles                               from './roles';
-import * as hooks                               from './hooks';
 import { InviteUserModal }                      from './InviteUserModal';
-import { util }                                 from './util';
+import * as roles                               from './roles';
+import { assert, hooks, util }                  from 'fgc';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
 import { observer }                             from 'mobx-react';
 import React, { useState }                      from 'react';
