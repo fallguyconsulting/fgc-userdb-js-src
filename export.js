@@ -10,5 +10,7 @@ module.exports = {
     LogInWithResetPasswordScreen:   require ( './LogInWithResetPasswordScreen.js' ).LogInWithResetPasswordScreen,
     SessionController:              require ( './SessionController.js' ).SessionController,
     UserAccountPopup:               require ( './UserAccountPopup.js' ).UserAccountPopup,
+    UserManagementController:       require ( './UserManagementController.js' ).UserManagementController,
+    UserManagementTable:            require ( './UserManagementTable.js' ).UserManagementTable,
     VerifierController:             require ( './VerifierController.js' ).VerifierController,
 };
