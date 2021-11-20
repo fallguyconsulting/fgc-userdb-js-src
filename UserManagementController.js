@@ -23,12 +23,6 @@ export class UserManagementController {
     }
 
     //----------------------------------------------------------------//
-    finalize () {
-
-        this.revocable.finalize ();
-    }
-
-    //----------------------------------------------------------------//
     @action
     async getUsersAsync () {
         
