@@ -1,6 +1,7 @@
 // Copyright (c) 2019 Fall Guy LLC All Rights Reserved.
 
-import { assert, ModelError, ERROR_STATUS, roles }      from 'fgc';
+import * as roles                                       from './roles';
+import { assert, ModelError, ERROR_STATUS }             from 'fgc';
 import bcrypt                                           from 'bcryptjs';
 import * as consts                                      from 'consts';
 import crypto                                           from 'crypto';
@@ -253,7 +254,7 @@ export class UsersDBMySQL {
 
             await conn.query (`
                 CREATE TABLE IF NOT EXISTS ${ consts.USERSDB_MYSQL_TABLE } (
-                    id          INT NOT NULL AUTO_INCREMENT,
+                    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     username    TEXT,
                     password    TEXT,
                     emailMD5    TEXT NOT NULL,
@@ -267,7 +268,7 @@ export class UsersDBMySQL {
 
                 await conn.query (`
                     CREATE TABLE IF NOT EXISTS ${ consts.USERSDB_MYSQL_INVITATIONS } (
-                        id          INT NOT NULL AUTO_INCREMENT,
+                        id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                         emailMD5    TEXT NOT NULL,
                         PRIMARY KEY ( id )
                     )
