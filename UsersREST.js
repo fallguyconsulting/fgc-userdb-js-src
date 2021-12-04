@@ -293,7 +293,7 @@ export class UsersREST {
 
                 let user = {
                     username:       username,
-                    password:       await bcrypt.hash ( password, consts.USERSDM_MYSQL_SALT_ROUNDS ),
+                    password:       await bcrypt.hash ( password, env.USERSDM_MYSQL_SALT_ROUNDS ),
                     emailMD5:       emailMD5, // TODO: encrypt plaintext email with user's password and store
                 };
 
@@ -351,7 +351,7 @@ export class UsersREST {
                 // only send a new user email if REGISTER is explicitely requested.
                 // this avoids sending new user emails to unregistered users.
                 // note that this is only available if there is no invitation table (i.e. anyone can sign up).
-                if (( actionID === VERIFIER_ACTIONS.REGISTER ) && ( consts.USERSDB_MYSQL_INVITATIONS === false )) {
+                if (( actionID === VERIFIER_ACTIONS.REGISTER ) && ( env.USERSDB_MYSQL_INVITATIONS === false )) {
 
                     console.log ( 'SENDING SIGNUP EMAIL' );
 
