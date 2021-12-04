@@ -293,7 +293,7 @@ export class UsersREST {
 
                 let user = {
                     username:       username,
-                    password:       await bcrypt.hash ( password, consts.USERSDM_MYSQL_SALT_ROUNDS ),
+                    password:       await bcrypt.hash ( password, env.USERSDM_MYSQL_SALT_ROUNDS ),
                     emailMD5:       emailMD5, // TODO: encrypt plaintext email with user's password and store
                 };
 

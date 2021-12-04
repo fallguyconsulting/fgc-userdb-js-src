@@ -6,6 +6,7 @@ import bcrypt                                           from 'bcryptjs';
 import * as consts                                      from 'consts';
 import crypto                                           from 'crypto';
 import _                                                from 'lodash';
+import * as env                                         from 'env';
 
 //================================================================//
 // UsersDBMySQL
@@ -16,7 +17,7 @@ export class UsersDBMySQL {
     async affirmInvitationAsync ( conn, emailMD5 ) {
 
 
-        if ( consts.USERSDB_MYSQL_INVITATIONS === false ) return;
+        if ( env.USERSDB_MYSQL_INVITATIONS === false ) return;
 
         // invitation behavior differes if we are using an invitation table (i.e. membership is invitation-only).
         // if anyone can sign up, then there is no need for an invitation table.
@@ -29,7 +30,7 @@ export class UsersDBMySQL {
 
                 await conn.query (`
                     INSERT
-                    INTO        ${ consts.USERSDB_MYSQL_INVITATIONS } ( emailMD5 )
+                    INTO        ${ env.USERSDB_MYSQL_INVITATIONS } ( emailMD5 )
                     VALUES      ( '${ emailMD5 }' )
                 `);
             }
@@ -43,12 +44,12 @@ export class UsersDBMySQL {
 
             const role = user.role || roles.STANDARD_ROLES.USER;
 
-            const existingUser = ( await conn.query ( `SELECT id FROM ${ consts.USERSDB_MYSQL_TABLE } WHERE username = '${ user.username }' OR emailMD5 = '${ user.emailMD5 }'` ))[ 0 ];
+            const existingUser = ( await conn.query ( `SELECT id FROM ${ env.USERSDB_MYSQL_TABLE } WHERE username = '${ user.username }' OR emailMD5 = '${ user.emailMD5 }'` ))[ 0 ];
 
             if ( existingUser ) {
 
                 await conn.query (`
-                    UPDATE  ${ consts.USERSDB_MYSQL_TABLE }
+                    UPDATE  ${ env.USERSDB_MYSQL_TABLE }
                     SET     username    = '${ user.username }',
                             password    = '${ user.password }'
                             emailMD5    = '${ user.emailMD5 }',
@@ -62,7 +63,7 @@ export class UsersDBMySQL {
 
                 const result = await conn.query (`
                     INSERT
-                    INTO        ${ consts.USERSDB_MYSQL_TABLE } ( username, password, emailMD5, role )
+                    INTO        ${ env.USERSDB_MYSQL_TABLE } ( username, password, emailMD5, role )
                     VALUES      ( '${ user.username }', '${ user.password }', '${ user.emailMD5 }', '${ role }' )
                 `);
 
@@ -78,10 +79,10 @@ export class UsersDBMySQL {
     async canRegisterUserAsync ( conn, username, emailMD5 ) {
 
         // cannot recreate user
-        if ( await conn.hasAsync ( `FROM ${ consts.USERSDB_MYSQL_TABLE } WHERE username = '${ username }' OR emailMD5 = '${ emailMD5 }'` )) return false;
+        if ( await conn.hasAsync ( `FROM ${ env.USERSDB_MYSQL_TABLE } WHERE username = '${ username }' OR emailMD5 = '${ emailMD5 }'` )) return false;
 
         // check invitation
-        return consts.USERSDB_MYSQL_INVITATIONS ? await conn.hasAsync ( `FROM ${ consts.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` ) : true;
+        return env.USERSDB_MYSQL_INVITATIONS ? await conn.hasAsync ( `FROM ${ env.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` ) : true;
     }
 
     //----------------------------------------------------------------//
@@ -91,12 +92,12 @@ export class UsersDBMySQL {
     //----------------------------------------------------------------//
     async deleteInvitationAsync ( conn, emailMD5 ) {
 
-        if ( consts.USERSDB_MYSQL_INVITATIONS === false ) return;
+        if ( env.USERSDB_MYSQL_INVITATIONS === false ) return;
 
         return conn.runInConnectionAsync ( async () => {
 
             await conn.query (`
-                DELETE FROM     ${ consts.USERSDB_MYSQL_INVITATIONS } 
+                DELETE FROM     ${ env.USERSDB_MYSQL_INVITATIONS } 
                 WHERE           emailMD5 = ( '${ emailMD5 }' )
             `);
         });
@@ -109,7 +110,7 @@ export class UsersDBMySQL {
 
             const row = ( await conn.query (`
                 SELECT      *
-                FROM        ${ consts.USERSDB_MYSQL_TABLE } 
+                FROM        ${ env.USERSDB_MYSQL_TABLE } 
                 WHERE       username = '${ usernameOrEmailMD5 }'
                     OR      emailMD5 = '${ usernameOrEmailMD5 }'
             `))[ 0 ];
@@ -131,7 +132,7 @@ export class UsersDBMySQL {
             if ( searchTerm ) {
                 rows = await conn.query (`
                     SELECT      *
-                    FROM        ${ consts.USERSDB_MYSQL_TABLE } 
+                    FROM        ${ env.USERSDB_MYSQL_TABLE } 
                     WHERE
                         MATCH ( username )
                         AGAINST ( '${ searchTerm }*' IN BOOLEAN MODE )
@@ -141,7 +142,7 @@ export class UsersDBMySQL {
             else {
                 rows = await conn.query (`
                     SELECT      *
-                    FROM        ${ consts.USERSDB_MYSQL_TABLE } 
+                    FROM        ${ env.USERSDB_MYSQL_TABLE } 
                     LIMIT ${ base },${ count }
                 `); 
             }
@@ -177,7 +178,7 @@ export class UsersDBMySQL {
 
             const row = ( await conn.query (`
                 SELECT      *
-                FROM        ${ consts.USERSDB_MYSQL_TABLE } 
+                FROM        ${ env.USERSDB_MYSQL_TABLE } 
                 WHERE       id = ${ userID }
             `))[ 0 ];
             
@@ -193,7 +194,7 @@ export class UsersDBMySQL {
 
             const row = ( await conn.query (`
                 SELECT      password
-                FROM        ${ consts.USERSDB_MYSQL_TABLE } 
+                FROM        ${ env.USERSDB_MYSQL_TABLE } 
                 WHERE       id = '${ userID }'
             `))[ 0 ];
             
@@ -205,10 +206,10 @@ export class UsersDBMySQL {
     //----------------------------------------------------------------//
     async hasInvitationAsync ( conn, emailMD5 ) {
 
-        if ( consts.USERSDB_MYSQL_INVITATIONS === false ) return true;
+        if ( env.USERSDB_MYSQL_INVITATIONS === false ) return true;
 
         return conn.runInConnectionAsync ( async () => {
-            return await conn.hasAsync ( `FROM ${ consts.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` );
+            return await conn.hasAsync ( `FROM ${ env.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` );
         });
     }
 
@@ -220,7 +221,7 @@ export class UsersDBMySQL {
             const row = ( await conn.query (`
                 SELECT      COUNT ( id )
                 AS          count
-                FROM        ${ consts.USERSDB_MYSQL_TABLE }
+                FROM        ${ env.USERSDB_MYSQL_TABLE }
                 WHERE       emailMD5 = '${ emailMD5 }'
             `))[ 0 ];
             
@@ -236,11 +237,11 @@ export class UsersDBMySQL {
 
         return conn.runInConnectionAsync ( async () => {
 
-            const row = ( await conn.query ( `SELECT * FROM ${ consts.USERSDB_MYSQL_TABLE } WHERE id = ${ userID }` ))[ 0 ];
+            const row = ( await conn.query ( `SELECT * FROM ${ env.USERSDB_MYSQL_TABLE } WHERE id = ${ userID }` ))[ 0 ];
             if ( !row ) throw new ModelError ( ERROR_STATUS.NOT_FOUND, 'User does not exist.' );
             
             await conn.query (`
-                UPDATE  ${ consts.USERSDB_MYSQL_TABLE }
+                UPDATE  ${ env.USERSDB_MYSQL_TABLE }
                 SET     role       = '${ role }'
                 WHERE   id         = ${ userID }
             `);
@@ -253,7 +254,7 @@ export class UsersDBMySQL {
         return conn.runInTransactionAsync ( async () => {
 
             await conn.query (`
-                CREATE TABLE IF NOT EXISTS ${ consts.USERSDB_MYSQL_TABLE } (
+                CREATE TABLE IF NOT EXISTS ${ env.USERSDB_MYSQL_TABLE } (
                     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     username    TEXT,
                     password    TEXT,
@@ -264,10 +265,10 @@ export class UsersDBMySQL {
                 )
             `);
 
-            if ( consts.USERSDB_MYSQL_INVITATIONS ) {
+            if ( env.USERSDB_MYSQL_INVITATIONS ) {
 
                 await conn.query (`
-                    CREATE TABLE IF NOT EXISTS ${ consts.USERSDB_MYSQL_INVITATIONS } (
+                    CREATE TABLE IF NOT EXISTS ${ env.USERSDB_MYSQL_INVITATIONS } (
                         id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                         emailMD5    TEXT NOT NULL,
                         PRIMARY KEY ( id )
@@ -275,18 +276,18 @@ export class UsersDBMySQL {
                 `);
             }
 
-            const userCount = await conn.countAsync ( `FROM ${ consts.USERSDB_MYSQL_TABLE }` );
+            const userCount = await conn.countAsync ( `FROM ${ env.USERSDB_MYSQL_TABLE }` );
 
             if ( userCount === 0 ) {
 
-                const username      = consts.USERSDM_MYSQL_ADMIN_NAME;
-                const password      = consts.USERSDM_MYSQL_ADMIN_PW;
-                const email         = consts.USERSDM_MYSQL_ADMIN_EMAIL;
+                const username      = env.USERSDM_MYSQL_ADMIN_NAME;
+                const password      = env.USERSDM_MYSQL_ADMIN_PW;
+                const email         = env.USERSDM_MYSQL_ADMIN_EMAIL;
                 const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
 
                 let user = {
                     username:       username,
-                    password:       await bcrypt.hash ( password, consts.USERSDM_MYSQL_SALT_ROUNDS ),
+                    password:       await bcrypt.hash ( password, env.USERSDM_MYSQL_SALT_ROUNDS ),
                     emailMD5:       emailMD5, // TODO: encrypt plaintext email with user's password and store
                     role:           roles.STANDARD_ROLES.ADMIN,
                 };
