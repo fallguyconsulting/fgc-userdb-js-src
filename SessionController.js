@@ -25,12 +25,6 @@ export class SessionController {
     }
 
     //----------------------------------------------------------------//
-    finalize () {
-
-        this.storage.finalize ();
-    }
-
-    //----------------------------------------------------------------//
     getHeaders ( headers ) {
 
         if ( this.isLoggedIn ) {
