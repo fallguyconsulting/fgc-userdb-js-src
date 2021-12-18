@@ -11,8 +11,6 @@ import express                      from 'express';
 import { assert, Mailer, rest }     from 'fgc';
 import _                            from 'lodash';
 
-qwdqwkjdqwkldjqwklqwjkldjqw
-
 const VERIFIER_ACTIONS = {
     REGISTER:   'register',
     RESET:      'reset',
