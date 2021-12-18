@@ -1,6 +1,6 @@
 /* eslint-disable no-whitespace-before-property */
 
-import * as consts                                          from 'consts';
+import * as config                                          from 'config';
 import { RevocableContext }                                 from 'fgc';
 import { action, computed, observable, runInAction }        from 'mobx';
 import _                                                    from 'lodash';
@@ -27,7 +27,7 @@ export class UserManagementController {
     async getUsersAsync () {
         
         try {
-            const data = await this.revocable.fetchJSON ( `${ consts.SERVICE_URL }/users`, {
+            const data = await this.revocable.fetchJSON ( `${ config.SERVICE_URL }/users`, {
                 headers:   this.session.getHeaders (),
             });
             if ( data && data.users ) {
@@ -52,7 +52,7 @@ export class UserManagementController {
 
         try {
             
-            await this.revocable.fetchJSON ( `${ consts.SERVICE_URL }/users/${ userID }/role`, {
+            await this.revocable.fetchJSON ( `${ config.SERVICE_URL }/users/${ userID }/role`, {
                 method:    'PUT',
                 headers:   this.session.getHeaders ({ 'content-type': 'application/json' }),
                 body:      JSON.stringify ({ userID: userID, role: role }),

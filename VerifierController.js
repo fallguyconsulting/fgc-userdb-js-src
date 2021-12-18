@@ -1,7 +1,7 @@
 /* eslint-disable no-whitespace-before-property */
 
 import { FormErrors }                           from './FormErrors';
-import * as consts                              from 'consts';
+import * as config                              from 'config';
 import { assert, hooks, util }                  from 'fgc';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
 import { observer }                             from 'mobx-react';
@@ -13,8 +13,8 @@ import validator                                from 'validator';
 export class VerifierController {
 
     static ACTION = {
-        CREATE_USER:        `${ consts.SERVICE_URL }/verifier/register`,
-        RESET_PASSWORD:     `${ consts.SERVICE_URL }/verifier/reset`,
+        CREATE_USER:        `${ config.SERVICE_URL }/verifier/register`,
+        RESET_PASSWORD:     `${ config.SERVICE_URL }/verifier/reset`,
     };
 
     static STEP = {

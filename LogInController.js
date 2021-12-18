@@ -1,7 +1,7 @@
 /* eslint-disable no-whitespace-before-property */
 
 import { FormErrors }                           from './FormErrors';
-import * as consts                              from 'consts';
+import * as config                              from 'config';
 import { assert, hooks, util }                  from 'fgc';
 import jwt_decode                               from 'jwt-decode';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
@@ -19,9 +19,9 @@ const PASSWORD_REGEX = /^[0-9a-zA-Z~`!?@#$%^&()_+*=/,.{}<>:;'"|[\]\\]+$/;
 export class LogInController {
 
     static ACTION = {
-        NONE:               `${ consts.SERVICE_URL }/login`,
-        CREATE_USER:        `${ consts.SERVICE_URL }/login/register`,
-        RESET_PASSWORD:     `${ consts.SERVICE_URL }/login/reset`,
+        NONE:               `${ config.SERVICE_URL }/login`,
+        CREATE_USER:        `${ config.SERVICE_URL }/login/register`,
+        RESET_PASSWORD:     `${ config.SERVICE_URL }/login/reset`,
     };
 
     static STEP = {

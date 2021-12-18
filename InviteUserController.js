@@ -1,7 +1,7 @@
 /* eslint-disable no-whitespace-before-property */
 
 import { FormErrors }                           from './FormErrors';
-import * as consts                              from 'consts';
+import * as config                              from 'config';
 import { assert, hooks, util }                  from 'fgc';
 import jwt_decode                               from 'jwt-decode';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
@@ -46,7 +46,7 @@ export class InviteUserController {
         ( async () => {
 
             try {
-                const result = await fetch ( `${ consts.SERVICE_URL }/invitations`, {
+                const result = await fetch ( `${ config.SERVICE_URL }/invitations`, {
                     method: 'POST',
                     headers: this.session.getHeaders ({ 'content-type': 'application/json' }),
                     body: JSON.stringify ({

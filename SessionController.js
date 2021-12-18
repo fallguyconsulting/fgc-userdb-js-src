@@ -1,7 +1,7 @@
 /* eslint-disable no-whitespace-before-property */
 
 import * as roles                   from './roles';
-import * as consts                  from 'consts';
+import * as config                  from 'config';
 import { assert, StorageContext }   from 'fgc';
 import { action, computed, extendObservable, observable, runInAction } from "mobx";
 
@@ -15,7 +15,7 @@ export class SessionController {
     //----------------------------------------------------------------//
     constructor () {
         this.storage = new StorageContext ();
-        this.storage.persist ( this, 'session', `.userdb.${ consts.USERDB_LOCAL_STORAGE_PREFIX }.gamercert`, {});
+        this.storage.persist ( this, 'session', `.userdb.${ config.USERDB_LOCAL_STORAGE_PREFIX }.gamercert`, {});
     }
 
     //----------------------------------------------------------------//

@@ -5,12 +5,13 @@ import * as roles                   from './roles';
 import { SessionMiddleware }        from './SessionMiddleware';
 import * as token                   from './token';
 import bcrypt                       from 'bcryptjs';
-import * as consts                  from 'consts';
+import * as config                  from 'config';
 import crypto                       from 'crypto';
-import * as env                     from 'env';
 import express                      from 'express';
 import { assert, Mailer, rest }     from 'fgc';
 import _                            from 'lodash';
+
+qwdqwkjdqwkldjqwklqwjkldjqw
 
 const VERIFIER_ACTIONS = {
     REGISTER:   'register',
@@ -31,7 +32,7 @@ export class UsersREST {
         this.roles          = defaultRoles || [];
         this.db             = db;
 
-        this.mailer = new Mailer ( env );
+        this.mailer = new Mailer ();
 
         this.router = express.Router ();
 
@@ -40,7 +41,7 @@ export class UsersREST {
         this.router.post ( '/login/register',       this.postLoginWithRegisterUserAsync.bind ( this ));
         this.router.post ( '/verifier/:actionID',   this.postVerifierEmailRequestAsync.bind ( this ));
 
-        const tokenMiddleware       = new token.TokenMiddleware ( env.SIGNING_KEY_FOR_SESSION, 'userID' );
+        const tokenMiddleware       = new token.TokenMiddleware ( config.SIGNING_KEY_FOR_SESSION, 'userID' );
         const sessionMiddleware     = new SessionMiddleware ( this.db );
         
         this.router.get (
@@ -210,7 +211,7 @@ export class UsersREST {
             console.log ( 'USER LOGGING IN:', user );
 
             if ( roles.check ( user.role, roles.ENTITLEMENTS.CAN_LOGIN ) && ( await bcrypt.compare ( body.password, password ))) {
-                rest.handleSuccess ( response, { session: this.makeSession ( user, env.SIGNING_KEY_FOR_SESSION )});
+                rest.handleSuccess ( response, { session: this.makeSession ( user, config.SIGNING_KEY_FOR_SESSION )});
                 return;
             }
         }
@@ -238,7 +239,7 @@ export class UsersREST {
             const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
 
             assert ( verifier );
-            const verified = token.verify ( body.verifier, env.SIGNING_KEY_FOR_PASSWORD_RESET );
+            const verified = token.verify ( body.verifier, config.SIGNING_KEY_FOR_PASSWORD_RESET );
             assert ( verified && verified.body && verified.body.sub );
 
             const payload = JSON.parse ( verified.body.sub );
@@ -248,10 +249,10 @@ export class UsersREST {
 
             if ( roles.check ( user.role, roles.ENTITLEMENTS.CAN_RESET_PASSWORD ) && roles.check ( user.role, roles.ENTITLEMENTS.CAN_LOGIN )) {
 
-                user.password = await bcrypt.hash ( password, env.SALT_ROUNDS );
+                user.password = await bcrypt.hash ( password, config.SALT_ROUNDS );
                 await this.db.users.affirmUserAsync ( conn, user );
 
-                rest.handleSuccess ( response, { session: this.makeSession ( user, env.SIGNING_KEY_FOR_SESSION )});
+                rest.handleSuccess ( response, { session: this.makeSession ( user, config.SIGNING_KEY_FOR_SESSION )});
                 return;
             }
         }
@@ -285,7 +286,7 @@ export class UsersREST {
             if ( await this.db.users.canRegisterUserAsync ( conn, username, emailMD5 )) {
 
                 assert ( verifier );
-                const verified = token.verify ( body.verifier, env.SIGNING_KEY_FOR_REGISTER_USER );
+                const verified = token.verify ( body.verifier, config.SIGNING_KEY_FOR_REGISTER_USER );
                 assert ( verified && verified.body && verified.body.sub );
 
                 const payload = JSON.parse ( verified.body.sub );
@@ -293,12 +294,12 @@ export class UsersREST {
 
                 let user = {
                     username:       username,
-                    password:       await bcrypt.hash ( password, consts.USERSDM_MYSQL_SALT_ROUNDS ),
+                    password:       await bcrypt.hash ( password, config.USERSDM_MYSQL_SALT_ROUNDS ),
                     emailMD5:       emailMD5, // TODO: encrypt plaintext email with user's password and store
                 };
 
                 user = await this.db.users.affirmUserAsync ( conn, user );
-                rest.handleSuccess ( response, { session: this.makeSession ( user, env.SIGNING_KEY_FOR_SESSION )});
+                rest.handleSuccess ( response, { session: this.makeSession ( user, config.SIGNING_KEY_FOR_SESSION )});
                 return;
             }
         }
@@ -336,7 +337,7 @@ export class UsersREST {
 
                     await this.sendVerifierEmailAsync (
                         email,
-                        token.create ( JSON.stringify ({ email: email }), 'localhost', 'self', env.SIGNING_KEY_FOR_PASSWORD_RESET ),
+                        token.create ( JSON.stringify ({ email: email }), 'localhost', 'self', config.SIGNING_KEY_FOR_PASSWORD_RESET ),
                         false,
                         this.templates.RESET_PASSWORD_EMAIL_SUBJECT,
                         this.templates.RESET_PASSWORD_EMAIL_TEXT_BODY_TEMPLATE,
@@ -351,14 +352,14 @@ export class UsersREST {
                 // only send a new user email if REGISTER is explicitely requested.
                 // this avoids sending new user emails to unregistered users.
                 // note that this is only available if there is no invitation table (i.e. anyone can sign up).
-                if (( actionID === VERIFIER_ACTIONS.REGISTER ) && ( consts.USERSDB_MYSQL_INVITATIONS === false )) {
+                if (( actionID === VERIFIER_ACTIONS.REGISTER ) && ( config.USERSDB_MYSQL_INVITATIONS === false )) {
 
                     console.log ( 'SENDING SIGNUP EMAIL' );
 
                     // user doesn't exist, so send a create user email.
                     await this.sendVerifierEmailAsync (
                         email,
-                        token.create ( JSON.stringify ({ email: email }), 'localhost', 'self', env.SIGNING_KEY_FOR_REGISTER_USER ),
+                        token.create ( JSON.stringify ({ email: email }), 'localhost', 'self', config.SIGNING_KEY_FOR_REGISTER_USER ),
                         request.body.redirect,
                         this.templates.REGISTER_USER_EMAIL_SUBJECT,
                         this.templates.REGISTER_USER_EMAIL_TEXT_BODY_TEMPLATE,
@@ -405,7 +406,7 @@ export class UsersREST {
                 // send (or re-send) the invitation email
                 await this.sendVerifierEmailAsync (
                     email,
-                    token.create ( JSON.stringify ({ email: email }), 'localhost', 'self', env.SIGNING_KEY_FOR_REGISTER_USER ),
+                    token.create ( JSON.stringify ({ email: email }), 'localhost', 'self', config.SIGNING_KEY_FOR_REGISTER_USER ),
                     request.body.redirect,
                     this.templates.INVITE_USER_EMAIL_SUBJECT,
                     this.templates.REGISTER_USER_EMAIL_TEXT_BODY_TEMPLATE,
@@ -466,7 +467,7 @@ export class UsersREST {
         const html = htmlTemplate ( context );
 
         await this.mailer.mailTransport.sendMail ({
-            from:       env.GMAIL_USER,
+            from:       config.GMAIL_USER,
             to:         email,
             subject:    subject,
             text:       text,
