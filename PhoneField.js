@@ -1,6 +1,5 @@
 /* eslint-disable no-whitespace-before-property */
 
-import * as consts                                      from 'consts';
 import { assert, hooks, RevocableContext }              from 'fgc';
 import libphone                                         from 'google-libphonenumber';
 import { action, computed, observable, runInAction }    from 'mobx';

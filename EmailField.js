@@ -1,6 +1,5 @@
 /* eslint-disable no-whitespace-before-property */
 
-import * as consts                                      from 'consts';
 import { assert, hooks, RevocableContext }              from 'fgc';
 import { action, computed, observable, runInAction }    from 'mobx';
 import { observer }                                     from 'mobx-react';
