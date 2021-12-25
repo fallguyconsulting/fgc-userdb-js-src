@@ -19,8 +19,8 @@ const PASSWORD_REGEX = /^[0-9a-zA-Z~`!?@#$%^&()_+*=/,.{}<>:;'"|[\]\\]+$/;
 export class LogInController {
 
     static ACTION = {
-        NONE:               `${ config.SERVICE_URL }/login`,
-        CREATE_USER:        `${ config.SERVICE_URL }/login/register`,
+        LOGIN:              `${ config.SERVICE_URL }/login`,
+        NEW_USER:           `${ config.SERVICE_URL }/login/register`,
         RESET_PASSWORD:     `${ config.SERVICE_URL }/login/reset`,
     };
 
@@ -43,25 +43,26 @@ export class LogInController {
 
         switch ( this.action ) {
 
-            case LogInController.ACTION.NONE:
+            case LogInController.ACTION.LOGIN:
                 return {
-                    email:      this.email,
-                    password:   this.password,
+                    email:          this.email,
+                    username:       this.username,
+                    password:       this.password,
                 };
 
-            case LogInController.ACTION.CREATE_USER:
+            case LogInController.ACTION.NEW_USER:
                 return {
-                    verifier:   this.verifier,
-                    email:      this.email,
-                    username:   this.username,
-                    password:   this.password,
+                    verifier:       this.verifier,
+                    email:          this.email,
+                    username:       this.username,
+                    password:       this.password,
                 }
 
             case LogInController.ACTION.RESET_PASSWORD:
                 return {
-                    verifier:   this.verifier,
-                    email:      this.email,
-                    password:   this.password,
+                    verifier:       this.verifier,
+                    email:          this.email,
+                    password:       this.password,
                 }
         }
         return {};
@@ -75,13 +76,13 @@ export class LogInController {
 
         switch ( this.action ) {
 
-            case LogInController.ACTION.NONE:
+            case LogInController.ACTION.LOGIN:
                 return (
-                    this.email &&
+                    ( this.email || this.username ) &&
                     this.password
                 );
 
-            case LogInController.ACTION.CREATE_USER:
+            case LogInController.ACTION.NEW_USER:
                 return (
                     this.verifier &&
                     this.email &&
@@ -104,12 +105,12 @@ export class LogInController {
     //----------------------------------------------------------------//
     constructor ( session, action, verifier ) {
 
-        this.action = action || LogInController.ACTION.NONE;
+        this.action = action || LogInController.ACTION.LOGIN;
         this.session = session;
         this.verifier = false;
 
         try {
-            if ( this.action  !== LogInController.ACTION.NONE ) {
+            if ( this.action  !== LogInController.ACTION.LOGIN ) {
                 
                 assert ( verifier );
                 const decoded = jwt_decode ( verifier );
@@ -127,7 +128,7 @@ export class LogInController {
         }
 
         this.errors.setValidator ( FormErrors.FIELDS.CONFIRM_PASSWORD, FormErrors.ERRORS.CONFIRM_PASSWORD, () => {
-            return (( this.action === LogInController.ACTION.NONE ) || ( this.password === this.confirmPassword ));
+            return (( this.action === LogInController.ACTION.LOGIN ) || ( this.password === this.confirmPassword ));
         });
 
         this.errors.setValidator ( FormErrors.FIELDS.EMAIL, FormErrors.ERRORS.INVALID_EMAIL, () => {
@@ -161,7 +162,7 @@ export class LogInController {
     @action
     onSubmit () {
 
-        if ( !this.errors.validate ()) return;
+        // if ( !this.errors.validate ()) return;
 
         this.setStep ( LogInController.STEP.BUSY );
 

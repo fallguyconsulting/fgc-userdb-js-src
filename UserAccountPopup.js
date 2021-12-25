@@ -1,5 +1,6 @@
 /* eslint-disable no-whitespace-before-property */
 
+import { LogInModal }                           from './LogInModal';
 import * as roles                               from './roles';
 import { assert, hooks, util }                  from 'fgc';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
@@ -36,6 +37,13 @@ export const UserAccountPopup = observer (( props ) => {
         <React.Fragment>
 
             <Choose>
+                <When condition = { session.isLoggingIn }>
+                    <LogInModal
+                        session     = { session }
+                        hideSignup  = { props.hideSignup || false }
+                    />
+                </When>
+
                 <When condition = { session.isLoggedIn }>
                     <UI.Popup
                         basic
@@ -85,7 +93,7 @@ export const UserAccountPopup = observer (( props ) => {
                         color = 'orange'
                         onClick = { onClickLogin }
                     >
-                        <UI.Icon name = 'bullhorn'/>
+                        <UI.Icon name = 'user'/>
                         Log In
                     </UI.Label>
                 </Otherwise>

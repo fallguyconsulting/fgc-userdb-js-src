@@ -19,7 +19,7 @@ export const LogInWithCreateUserScreen = observer (( props ) => {
     const query = queryString.parse ( useLocation ().search );
 
     const session = hooks.useFinalizable (() => new SessionController ());
-    const controller = hooks.useFinalizable (() => new LogInController ( session, LogInController.ACTION.CREATE_USER, query.verifier ));
+    const controller = hooks.useFinalizable (() => new LogInController ( session, LogInController.ACTION.NEW_USER, query.verifier ));
 
     if (( !controller.hasVerifier ) || session.isLoggedIn ) {
         return <Redirect to = { query.redirect || '/' }/>

@@ -13,7 +13,7 @@ import validator                                from 'validator';
 export class VerifierController {
 
     static ACTION = {
-        CREATE_USER:        `${ config.SERVICE_URL }/verifier/register`,
+        NEW_USER:           `${ config.SERVICE_URL }/verifier/register`,
         RESET_PASSWORD:     `${ config.SERVICE_URL }/verifier/reset`,
     };
 
