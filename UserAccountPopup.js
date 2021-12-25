@@ -1,6 +1,5 @@
 /* eslint-disable no-whitespace-before-property */
 
-import { InviteUserModal }                      from './InviteUserModal';
 import * as roles                               from './roles';
 import { assert, hooks, util }                  from 'fgc';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
@@ -35,12 +34,6 @@ export const UserAccountPopup = observer (( props ) => {
 
     return (
         <React.Fragment>
-
-            <InviteUserModal
-                session         = { session }
-                open            = { inviteUserModalOpen }
-                onClose         = { onInviteUserModalClose }
-            />
 
             <Choose>
                 <When condition = { session.isLoggedIn }>

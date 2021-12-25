@@ -2,7 +2,7 @@
 
 module.exports = {
     PasswordMiddleware:     require ( './PasswordMiddleware.js' ).PasswordMiddleware,
-    SessionMiddleware:      require ( './SessionMiddleware.js' ).SessionMiddleware,
+    UsersMiddleware:      require ( './UsersMiddleware.js' ).UsersMiddleware,
     roles:                  require ( './roles.js' ),
     token:                  require ( './token.js' ),
     UsersDBMySQL:           require ( './UsersDBMySQL.js' ).UsersDBMySQL,

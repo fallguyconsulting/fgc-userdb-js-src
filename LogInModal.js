@@ -269,23 +269,14 @@ export const LogInModal = observer (( props ) => {
         >   
             <UI.Modal.Content>
                 
-                {/******************************************************************
-                    LOG IN
-                ******************************************************************/}
                 <UI.Header as = 'h4'>Log In</UI.Header>
                 <LogInForm session = { sessionController } controller = { logInController } disabled = { signUpController.isActive }/>
                 
-                {/******************************************************************
-                    SIGN UP
-                ******************************************************************/}
                 <If condition = { props.hideSignup !== true }>
                     <UI.Header as = 'h4'>Sign Up</UI.Header>
                     <SignUpForm session = { sessionController } controller = { signUpController } disabled = { logInController.isActive }/>
                 </If>
 
-                {/******************************************************************
-                    FORGOT PASSWORD
-                ******************************************************************/}
                 <div style = {{ textAlign: 'center', color: 'blue', cursor: 'pointer' }}>
                     <p onClick = {() => { setResetPasswordModalOpen ( true )}}>
                         Forgot Password?

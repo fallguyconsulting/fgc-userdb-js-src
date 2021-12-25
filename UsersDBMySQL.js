@@ -13,21 +13,20 @@ import _                                                from 'lodash';
 export class UsersDBMySQL {
 
     //----------------------------------------------------------------//
-    async affirmInvitationAsync ( conn, emailMD5 ) {
-
+    async affirmInvitationAsync ( emailMD5 ) {
 
         if ( config.USERSDB_MYSQL_INVITATIONS === false ) return;
 
         // invitation behavior differes if we are using an invitation table (i.e. membership is invitation-only).
         // if anyone can sign up, then there is no need for an invitation table.
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            const hasInvitation = await this.hasInvitationAsync ( conn, emailMD5 );
+            const hasInvitation = await this.hasInvitationAsync ( emailMD5 );
 
             if ( !hasInvitation ) {
 
-                await conn.query (`
+                await this.db.query (`
                     INSERT
                     INTO        ${ config.USERSDB_MYSQL_INVITATIONS } ( emailMD5 )
                     VALUES      ( '${ emailMD5 }' )
@@ -37,17 +36,17 @@ export class UsersDBMySQL {
     }
 
     //----------------------------------------------------------------//
-    async affirmUserAsync ( conn, user ) {
+    async affirmUserAsync ( user ) {
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
             const role = user.role || roles.STANDARD_ROLES.USER;
 
-            const existingUser = ( await conn.query ( `SELECT id FROM ${ config.USERSDB_MYSQL_TABLE } WHERE username = '${ user.username }' OR emailMD5 = '${ user.emailMD5 }'` ))[ 0 ];
+            const existingUser = ( await this.db.query ( `SELECT id FROM ${ config.USERSDB_MYSQL_TABLE } WHERE username = '${ user.username }' OR emailMD5 = '${ user.emailMD5 }'` ))[ 0 ];
 
             if ( existingUser ) {
 
-                await conn.query (`
+                await this.db.query (`
                     UPDATE  ${ config.USERSDB_MYSQL_TABLE }
                     SET     username    = '${ user.username }',
                             password    = '${ user.password }'
@@ -57,45 +56,46 @@ export class UsersDBMySQL {
                 `);
 
                 user.userID = existingUser.id;
-            }
-            else {
-
-                const result = await conn.query (`
-                    INSERT
-                    INTO        ${ config.USERSDB_MYSQL_TABLE } ( username, password, emailMD5, role )
-                    VALUES      ( '${ user.username }', '${ user.password }', '${ user.emailMD5 }', '${ role }' )
-                `);
-
-                assert ( typeof ( result.insertId ) === 'number' );
-                user.userID = result.insertId;
+                return await this.onUpdateUserAsync ( user );
             }
 
-            return user;
+            const result = await this.db.query (`
+                INSERT
+                INTO        ${ config.USERSDB_MYSQL_TABLE } ( username, password, emailMD5, role )
+                VALUES      ( '${ user.username }', '${ user.password }', '${ user.emailMD5 }', '${ role }' )
+            `);
+
+            assert ( typeof ( result.insertId ) === 'number' );
+            user.userID = result.insertId;
+
+            return await this.onNewUserAsync ( user );
         });
     }
 
     //----------------------------------------------------------------//
-    async canRegisterUserAsync ( conn, username, emailMD5 ) {
+    async canRegisterUserAsync ( username, emailMD5 ) {
 
         // cannot recreate user
-        if ( await conn.hasAsync ( `FROM ${ config.USERSDB_MYSQL_TABLE } WHERE username = '${ username }' OR emailMD5 = '${ emailMD5 }'` )) return false;
+        if ( await this.db.hasAsync ( `FROM ${ config.USERSDB_MYSQL_TABLE } WHERE username = '${ username }' OR emailMD5 = '${ emailMD5 }'` )) return false;
 
         // check invitation
-        return config.USERSDB_MYSQL_INVITATIONS ? await conn.hasAsync ( `FROM ${ config.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` ) : true;
+        return config.USERSDB_MYSQL_INVITATIONS ? await this.db.hasAsync ( `FROM ${ config.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` ) : true;
     }
 
     //----------------------------------------------------------------//
-    constructor () {
+    constructor ( db ) {
+
+        this.db = db;
     }
 
     //----------------------------------------------------------------//
-    async deleteInvitationAsync ( conn, emailMD5 ) {
+    async deleteInvitationAsync ( emailMD5 ) {
 
         if ( config.USERSDB_MYSQL_INVITATIONS === false ) return;
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            await conn.query (`
+            await this.db.query (`
                 DELETE FROM     ${ config.USERSDB_MYSQL_INVITATIONS } 
                 WHERE           emailMD5 = ( '${ emailMD5 }' )
             `);
@@ -103,25 +103,25 @@ export class UsersDBMySQL {
     }
 
     //----------------------------------------------------------------//
-    async findUserAsync ( conn, usernameOrEmailMD5 ) {
+    async findUserAsync ( usernameOrEmailMD5 ) {
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            const row = ( await conn.query (`
+            const row = ( await this.db.query (`
                 SELECT      *
                 FROM        ${ config.USERSDB_MYSQL_TABLE } 
                 WHERE       username = '${ usernameOrEmailMD5 }'
                     OR      emailMD5 = '${ usernameOrEmailMD5 }'
             `))[ 0 ];
 
-            return row ? this.userFromRow ( row ) : false;
+            return row ? await this.userFromRowAsync ( row ) : false;
         });
     }
 
     //----------------------------------------------------------------//
-    async findUsersAsync ( conn, searchTerm, base, count ) {
+    async findUsersAsync ( searchTerm, base, count ) {
         
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
             base    = base || 0;
             count   = count || 256;
@@ -129,7 +129,7 @@ export class UsersDBMySQL {
             let rows = [];
 
             if ( searchTerm ) {
-                rows = await conn.query (`
+                rows = await this.db.query (`
                     SELECT      *
                     FROM        ${ config.USERSDB_MYSQL_TABLE } 
                     WHERE
@@ -139,7 +139,7 @@ export class UsersDBMySQL {
                 `);
             }
             else {
-                rows = await conn.query (`
+                rows = await this.db.query (`
                     SELECT      *
                     FROM        ${ config.USERSDB_MYSQL_TABLE } 
                     LIMIT ${ base },${ count }
@@ -148,7 +148,7 @@ export class UsersDBMySQL {
 
             const users = [];
             for ( let row of rows ) {
-                users.push ( this.userFromRow ( row ));
+                users.push ( await this.userFromRowAsync ( row ));
             }
             return users;
         });
@@ -161,37 +161,37 @@ export class UsersDBMySQL {
     }
 
     //----------------------------------------------------------------//
-    async getUserAsync ( conn, usernameOrEmailMD5 ) {
+    async getUserAsync ( usernameOrEmailMD5 ) {
 
-        return conn.runInConnectionAsync ( async () => {
-            const user = await this.findUserAsync ( conn, usernameOrEmailMD5 );
+        return this.db.runInConnectionAsync ( async () => {
+            const user = await this.findUserAsync ( usernameOrEmailMD5 );
             if ( !user ) throw new ModelError ( ERROR_STATUS.NOT_FOUND, 'User does not exist.' );
             return user;
         });
     }
 
     //----------------------------------------------------------------//
-    async getUserByIDAsync ( conn, userID ) {
+    async getUserByIDAsync ( userID ) {
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            const row = ( await conn.query (`
+            const row = ( await this.db.query (`
                 SELECT      *
                 FROM        ${ config.USERSDB_MYSQL_TABLE } 
                 WHERE       id = ${ userID }
             `))[ 0 ];
             
             if ( !row ) throw new ModelError ( ERROR_STATUS.NOT_FOUND, 'User does not exist.' );
-            return this.userFromRow ( row );
+            return await this.userFromRowAsync ( row );
         });
     }
 
     //----------------------------------------------------------------//
-    async getUserPasswordAsync ( conn, userID ) {
+    async getUserPasswordAsync ( userID ) {
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            const row = ( await conn.query (`
+            const row = ( await this.db.query (`
                 SELECT      password
                 FROM        ${ config.USERSDB_MYSQL_TABLE } 
                 WHERE       id = '${ userID }'
@@ -203,21 +203,21 @@ export class UsersDBMySQL {
     }
 
     //----------------------------------------------------------------//
-    async hasInvitationAsync ( conn, emailMD5 ) {
+    async hasInvitationAsync ( emailMD5 ) {
 
         if ( config.USERSDB_MYSQL_INVITATIONS === false ) return true;
 
-        return conn.runInConnectionAsync ( async () => {
-            return await conn.hasAsync ( `FROM ${ config.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` );
+        return this.db.runInConnectionAsync ( async () => {
+            return await this.db.hasAsync ( `FROM ${ config.USERSDB_MYSQL_INVITATIONS } WHERE emailMD5 = '${ emailMD5 }'` );
         });
     }
 
     //----------------------------------------------------------------//
-    async hasUserByEmailMD5Async ( conn, emailMD5 ) {
+    async hasUserByEmailMD5Async ( emailMD5 ) {
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            const row = ( await conn.query (`
+            const row = ( await this.db.query (`
                 SELECT      COUNT ( id )
                 AS          count
                 FROM        ${ config.USERSDB_MYSQL_TABLE }
@@ -229,17 +229,36 @@ export class UsersDBMySQL {
     }
 
     //----------------------------------------------------------------//
-    async updateRoleAsync ( conn, userID, role ) {
+    async onNewUserAsync ( user ) {
+        return user;
+    }
+
+    //----------------------------------------------------------------//
+    async onUpdateDatabaseAsync () {
+    }
+
+    //----------------------------------------------------------------//
+    async onUpdateUserAsync ( user ) {
+        return user;
+    }
+
+    //----------------------------------------------------------------//
+    async onUserFromRowAsync ( user ) {
+        return user;
+    }
+
+    //----------------------------------------------------------------//
+    async updateRoleAsync ( userID, role ) {
 
         assert ( role );
         assert ( _.includes ( roles.STANDARD_ROLES, role ));
 
-        return conn.runInConnectionAsync ( async () => {
+        return this.db.runInConnectionAsync ( async () => {
 
-            const row = ( await conn.query ( `SELECT * FROM ${ config.USERSDB_MYSQL_TABLE } WHERE id = ${ userID }` ))[ 0 ];
+            const row = ( await this.db.query ( `SELECT * FROM ${ config.USERSDB_MYSQL_TABLE } WHERE id = ${ userID }` ))[ 0 ];
             if ( !row ) throw new ModelError ( ERROR_STATUS.NOT_FOUND, 'User does not exist.' );
             
-            await conn.query (`
+            await this.db.query (`
                 UPDATE  ${ config.USERSDB_MYSQL_TABLE }
                 SET     role       = '${ role }'
                 WHERE   id         = ${ userID }
@@ -248,11 +267,11 @@ export class UsersDBMySQL {
     }
 
     //----------------------------------------------------------------//
-    async updateDatabaseSchemaAsync ( conn ) {
+    async updateDatabaseAsync () {
 
-        return conn.runInTransactionAsync ( async () => {
+        return this.db.runInTransactionAsync ( async () => {
 
-            await conn.query (`
+            await this.db.query (`
                 CREATE TABLE IF NOT EXISTS ${ config.USERSDB_MYSQL_TABLE } (
                     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                     username    TEXT,
@@ -266,7 +285,7 @@ export class UsersDBMySQL {
 
             if ( config.USERSDB_MYSQL_INVITATIONS ) {
 
-                await conn.query (`
+                await this.db.query (`
                     CREATE TABLE IF NOT EXISTS ${ config.USERSDB_MYSQL_INVITATIONS } (
                         id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
                         emailMD5    TEXT NOT NULL,
@@ -275,7 +294,7 @@ export class UsersDBMySQL {
                 `);
             }
 
-            const userCount = await conn.countAsync ( `FROM ${ config.USERSDB_MYSQL_TABLE }` );
+            const userCount = await this.db.countAsync ( `FROM ${ config.USERSDB_MYSQL_TABLE }` );
 
             if ( userCount === 0 ) {
 
@@ -291,19 +310,21 @@ export class UsersDBMySQL {
                     role:           roles.STANDARD_ROLES.ADMIN,
                 };
 
-                await this.affirmUserAsync ( conn, user );
+                await this.affirmUserAsync ( user );
             }
+
+            await this.onUpdateDatabaseAsync ();
         });
     }
 
     //----------------------------------------------------------------//
-    userFromRow ( row ) {
+    async userFromRowAsync ( row ) {
 
-        return {
+        return await this.onUserFromRowAsync ({
             userID:         row.id,
             username:       row.username,
             emailMD5:       row.emailMD5,
             role:           row.role,
-        };
+        });
     }
 }

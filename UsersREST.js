@@ -2,7 +2,7 @@
 
 import { PasswordMiddleware }       from './PasswordMiddleware';
 import * as roles                   from './roles';
-import { SessionMiddleware }        from './SessionMiddleware';
+import * as usersMiddleware         from './usersMiddleware';
 import * as token                   from './token';
 import bcrypt                       from 'bcryptjs';
 import * as config                  from 'config';
@@ -22,69 +22,33 @@ const VERIFIER_ACTIONS = {
 export class UsersREST {
 
     //----------------------------------------------------------------//
-    constructor ( db, templates, defaultRoles ) {
+    constructor ( model, templates ) {
         
         assert ( templates );
 
         this.templates      = templates;
-        this.roles          = defaultRoles || [];
-        this.db             = db;
+        this.model          = model;
+        this.mailer         = new Mailer ();
+        this.router         = express.Router ();
 
-        this.mailer = new Mailer ();
+        const withAuth                      = usersMiddleware.withTokenAuth ( config.SIGNING_KEY_FOR_SESSION );
+        const withLogin                     = usersMiddleware.withLogin ( model, true );
+        const withPasswordResetAndLogin     = usersMiddleware.withPasswordResetAndLogin ( model, true );
+        const withRegisterUserAndLogin      = usersMiddleware.withRegisterUserAndLogin ( model, true );
+        const withUser                      = usersMiddleware.withUser ( model );
+        const withAdmin                     = usersMiddleware.withAdmin ( model );
 
-        this.router = express.Router ();
+        this.router.post    ( '/login',                         withLogin );
+        this.router.post    ( '/login/reset',                   withPasswordResetAndLogin );
+        this.router.post    ( '/login/register',                withRegisterUserAndLogin );
+        this.router.post    ( '/verifier/:actionID',            this.postVerifierEmailRequestAsync.bind ( this ));
 
-        this.router.post ( '/login',                this.postLoginAsync.bind ( this ));
-        this.router.post ( '/login/reset',          this.postLoginWithPasswordResetAsync.bind ( this ));
-        this.router.post ( '/login/register',       this.postLoginWithRegisterUserAsync.bind ( this ));
-        this.router.post ( '/verifier/:actionID',   this.postVerifierEmailRequestAsync.bind ( this ));
-
-        const tokenMiddleware       = new token.TokenMiddleware ( config.SIGNING_KEY_FOR_SESSION, 'userID' );
-        const sessionMiddleware     = new SessionMiddleware ( this.db );
-        
-        this.router.get (
-            '/users/:userID',
-            tokenMiddleware.withTokenAuth (),
-            this.getUserAsync.bind ( this )
-        );
-        
-        this.router.get (
-            '/users',
-            tokenMiddleware.withTokenAuth (),
-            this.getUsersAsync.bind ( this )
-        );
-
-        // roles
-
-        this.router.put (
-            '/users/:userID/role',
-            tokenMiddleware.withTokenAuth (),
-            sessionMiddleware.isAdmin (),
-            this.putUserRoleAsync.bind ( this )
-        );
-
-        // invitations
-
-        this.router.get (
-            '/invitations/:emailMD5',
-            tokenMiddleware.withTokenAuth (),
-            sessionMiddleware.isAdmin (),
-            this.getInvitation.bind ( this )
-        );
-
-        this.router.put (
-            '/invitations/:emailMD5',
-            tokenMiddleware.withTokenAuth (),
-            sessionMiddleware.isAdmin (),
-            this.putInvitation.bind ( this )
-        );
-
-        this.router.delete (
-            '/invitations/:emailMD5',
-            tokenMiddleware.withTokenAuth (),
-            sessionMiddleware.isAdmin (),
-            this.deleteInvitation.bind ( this )
-        );
+        this.router.get     ( '/users/:userID',                 withAuth, this.getUserAsync.bind ( this ));
+        this.router.get     ( '/users',                         withAuth, this.getUsersAsync.bind ( this ));
+        this.router.put     ( '/users/:userID/role',            withAuth, withAdmin, this.putUserRoleAsync.bind ( this ));
+        this.router.get     ( '/invitations/:emailMD5',         withAuth, withAdmin, this.getInvitation.bind ( this ));
+        this.router.put     ( '/invitations/:emailMD5',         withAuth, withAdmin, this.putInvitation.bind ( this ));
+        this.router.delete  ( '/invitations/:emailMD5',         withAuth, withAdmin, this.deleteInvitation.bind ( this ));
     }
 
     //----------------------------------------------------------------//
@@ -94,8 +58,7 @@ export class UsersREST {
             console.log ( 'DELETE INVITATION' );
             const emailMD5 = request.params.emailMD5;
 
-            const conn = this.db.makeConnection ();
-            await this.db.users.deleteInvitationAsync ( conn, emailMD5 );   
+            await this.model.deleteInvitationAsync ( emailMD5 );   
         }
         catch ( error ) {
             console.log ( error );
@@ -113,15 +76,14 @@ export class UsersREST {
             console.log ( 'GET INVITATION' );
             const emailMD5 = request.params.emailMD5;
 
-            const conn = this.db.makeConnection ();
-            const user = await this.db.users.findUserAsync ( conn, emailMD5 );
+            const user = await this.model.findUserAsync ( emailMD5 );
 
             if ( user ) {
                 rest.handleSuccess ( response, { user : user });
                 return;
             }
 
-            if ( await this.db.users.hasInvitationAsync ( conn, emailMD5 )) {
+            if ( await this.model.hasInvitationAsync (emailMD5 )) {
                 rest.handleSuccess ( response, { hasInvitation : true });
                 return;
             }
@@ -140,8 +102,7 @@ export class UsersREST {
         console.log ( 'GET USER:', userID );
 
         try {
-            const conn = this.db.makeConnection ();
-            const user = await this.db.users.getUserByIDAsync ( conn, userID );
+            const user = await this.model.getUserByIDAsync ( userID );
             rest.handleSuccess ( response, { user : user });
         }
         catch ( error ) {
@@ -162,8 +123,7 @@ export class UsersREST {
 
             console.log ( searchTerm, base, count );
 
-            const conn = this.db.makeConnection ();
-            const searchResults = await this.db.users.findUsersAsync ( conn, searchTerm, base, count );
+            const searchResults = await this.model.findUsersAsync ( searchTerm, base, count );
 
             console.log ( searchResults );
 
@@ -175,141 +135,6 @@ export class UsersREST {
     }
 
     //----------------------------------------------------------------//
-    makeSession ( user, signingKey ) {
-
-        return {
-            token:          token.create ( user.userID, 'localhost', 'self', signingKey ),
-            userID:         user.userID,
-            username:       user.username,
-            emailMD5:       user.emailMD5,
-            role:           user.role,
-        };
-    }
-
-    //----------------------------------------------------------------//
-    async postLoginAsync ( request, response ) {
-
-        console.log ( 'POST LOGIN' );
-
-        try {
-
-            const conn          = this.db.makeConnection ();
-
-            const body          = request.body;
-            const email         = body.email;
-            const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
-
-            console.log ( email, emailMD5 );
-
-            const user          = await this.db.users.getUserAsync ( conn, emailMD5 );
-            const password      = await this.db.users.getUserPasswordAsync ( conn, user.userID );
-
-            console.log ( user.username, emailMD5 );
-
-            console.log ( 'USER LOGGING IN:', user );
-
-            if ( roles.check ( user.role, roles.ENTITLEMENTS.CAN_LOGIN ) && ( await bcrypt.compare ( body.password, password ))) {
-                rest.handleSuccess ( response, { session: this.makeSession ( user, config.SIGNING_KEY_FOR_SESSION )});
-                return;
-            }
-        }
-        catch ( error ) {
-            console.log ( error );
-            rest.handleError ( response, error );
-            return;
-        }
-        rest.handleError ( response, 401 );
-    }
-
-    //----------------------------------------------------------------//
-    async postLoginWithPasswordResetAsync ( request, response ) {
-
-        try {
-
-            console.log ( 'POST LOGIN WITH PASSWORD RESET' );
-
-            const conn          = this.db.makeConnection ();
-
-            const body          = request.body;
-            const verifier      = body.verifier;
-            const password      = body.password;
-            const email         = body.email;
-            const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
-
-            assert ( verifier );
-            const verified = token.verify ( body.verifier, config.SIGNING_KEY_FOR_PASSWORD_RESET );
-            assert ( verified && verified.body && verified.body.sub );
-
-            const payload = JSON.parse ( verified.body.sub );
-            assert ( payload.email === email );
-
-            const user = await this.db.users.getUserAsync ( conn, emailMD5 );
-
-            if ( roles.check ( user.role, roles.ENTITLEMENTS.CAN_RESET_PASSWORD ) && roles.check ( user.role, roles.ENTITLEMENTS.CAN_LOGIN )) {
-
-                user.password = await bcrypt.hash ( password, config.SALT_ROUNDS );
-                await this.db.users.affirmUserAsync ( conn, user );
-
-                rest.handleSuccess ( response, { session: this.makeSession ( user, config.SIGNING_KEY_FOR_SESSION )});
-                return;
-            }
-        }
-        catch ( error ) {
-            rest.handleError ( response, error );
-            return;
-        }
-        rest.handleError ( response, 401 );
-    }
-
-    //----------------------------------------------------------------//
-    async postLoginWithRegisterUserAsync ( request, response ) {
-
-        try {
-
-            console.log ( 'POST LOGIN WITH REGISTER USER' );
-
-            const conn          = this.db.makeConnection ();
-
-            const body          = request.body;
-
-            console.log ( 'BODY', body );
-
-            const verifier      = body.verifier;
-            const username      = body.username;
-            const password      = body.password;
-            const email         = body.email;
-            const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
-
-            // do not overwrite existing users
-            if ( await this.db.users.canRegisterUserAsync ( conn, username, emailMD5 )) {
-
-                assert ( verifier );
-                const verified = token.verify ( body.verifier, config.SIGNING_KEY_FOR_REGISTER_USER );
-                assert ( verified && verified.body && verified.body.sub );
-
-                const payload = JSON.parse ( verified.body.sub );
-                assert ( payload.email === email );
-
-                let user = {
-                    username:       username,
-                    password:       await bcrypt.hash ( password, config.USERSDM_MYSQL_SALT_ROUNDS ),
-                    emailMD5:       emailMD5, // TODO: encrypt plaintext email with user's password and store
-                };
-
-                user = await this.db.users.affirmUserAsync ( conn, user );
-                rest.handleSuccess ( response, { session: this.makeSession ( user, config.SIGNING_KEY_FOR_SESSION )});
-                return;
-            }
-        }
-        catch ( error ) {
-            console.log ( error );
-            rest.handleError ( response, error );
-            return;
-        }
-        rest.handleError ( response, 401 );
-    }
-
-    //----------------------------------------------------------------//
     async postVerifierEmailRequestAsync ( request, response ) {
 
         try {
@@ -318,14 +143,12 @@ export class UsersREST {
             console.log ( 'POST VERIFIER EMAIL REQUEST', actionID );
             assert ( Object.values ( VERIFIER_ACTIONS ).includes ( actionID ));
 
-            const conn          = this.db.makeConnection ();
-
             const email         = request.body.email;
             const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
 
             // if already exists, send a password reset email.
             // do this for both RESET and REGISTER actions.
-            const user = await this.db.users.findUserAsync ( conn, emailMD5 );
+            const user = await this.model.findUserAsync (emailMD5 );
 
             if ( user ) {
 
@@ -392,14 +215,12 @@ export class UsersREST {
                 rest.handleError ( response, 403 );
                 return;
             }
-            
-            const conn = this.db.makeConnection ();
-    
-            if ( !( await this.db.users.hasUserByEmailMD5Async ( conn, emailMD5 ))) {
+                
+            if ( !( await this.model.hasUserByEmailMD5Async ( emailMD5 ))) {
 
                 console.log ( 'affirming invitation', emailMD5 );
 
-                await this.db.users.affirmInvitationAsync ( conn, emailMD5 );
+                await this.model.affirmInvitationAsync (emailMD5 );
 
                 // send (or re-send) the invitation email
                 await this.sendVerifierEmailAsync (
@@ -439,8 +260,7 @@ export class UsersREST {
                 return;
             }
 
-            const conn = this.db.makeConnection ();
-            await this.db.users.updateRoleAsync ( conn, userID, role );
+            await this.model.updateRoleAsync ( userID, role );
 
             rest.handleSuccess ( response );
             return;
