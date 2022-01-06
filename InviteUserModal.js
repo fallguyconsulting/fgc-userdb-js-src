@@ -65,9 +65,9 @@ export const InviteUserModal = observer (( props ) => {
 
     return (
         <UI.Modal
-            size = 'tiny'
-            open = { open }
-            onClose = { onClose }
+            open
+            size        = 'tiny'
+            onClose     = { onClose }
         >   
             <UI.Modal.Content>
                 <UI.Header as = 'h4'>Inivte User</UI.Header>
