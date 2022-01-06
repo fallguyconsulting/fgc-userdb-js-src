@@ -1,6 +1,5 @@
 /* eslint-disable no-whitespace-before-property */
 
-import { InviteUserModal }                      from './InviteUserModal';
 import * as roles                               from './roles';
 import { assert, hooks, util }                  from 'fgc';
 import { action, computed, extendObservable, observable, observe, runInAction } from 'mobx';
@@ -14,7 +13,6 @@ import * as UI                                  from 'semantic-ui-react';
 export const UserAccountPopup = observer (( props ) => {
 
     const [ userPopupOpen, setUserPopupOpen ]               = useState ( false );
-    const [ inviteUserModalOpen, setInviteUserModalOpen ]   = useState ( false );
     const { sessionController }                             = props;
 
     const session = sessionController;
@@ -24,23 +22,8 @@ export const UserAccountPopup = observer (( props ) => {
         session.login ();
     }
 
-    const onClickInviteUser = () => {
-        setUserPopupOpen ( false );
-        setInviteUserModalOpen ( true );
-    }
-
-    const onInviteUserModalClose = () => {
-        setInviteUserModalOpen ( false );
-    }
-
     return (
         <React.Fragment>
-
-            <InviteUserModal
-                session         = { session }
-                open            = { inviteUserModalOpen }
-                onClose         = { onInviteUserModalClose }
-            />
 
             <Choose>
                 <When condition = { session.isLoggedIn }>

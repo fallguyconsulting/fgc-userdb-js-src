@@ -351,7 +351,7 @@ export class UsersREST {
                 // only send a new user email if REGISTER is explicitely requested.
                 // this avoids sending new user emails to unregistered users.
                 // note that this is only available if there is no invitation table (i.e. anyone can sign up).
-                if (( actionID === VERIFIER_ACTIONS.REGISTER ) && ( consts.USERSDB_MYSQL_INVITATIONS === false )) {
+                if (( actionID === VERIFIER_ACTIONS.REGISTER ) && ( env.USERSDB_MYSQL_INVITATIONS === false )) {
 
                     console.log ( 'SENDING SIGNUP EMAIL' );
 
