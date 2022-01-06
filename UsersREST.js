@@ -73,8 +73,8 @@ export class UsersREST {
             this.getInvitation.bind ( this )
         );
 
-        this.router.put (
-            '/invitations/:emailMD5',
+        this.router.post (
+            '/invitations',
             tokenMiddleware.withTokenAuth (),
             sessionMiddleware.isAdmin (),
             this.putInvitation.bind ( this )
@@ -248,7 +248,7 @@ export class UsersREST {
 
             if ( roles.check ( user.role, roles.ENTITLEMENTS.CAN_RESET_PASSWORD ) && roles.check ( user.role, roles.ENTITLEMENTS.CAN_LOGIN )) {
 
-                user.password = await bcrypt.hash ( password, env.SALT_ROUNDS );
+                user.password = await bcrypt.hash ( password, env.USERSDM_MYSQL_SALT_ROUNDS );
                 await this.db.users.affirmUserAsync ( conn, user );
 
                 rest.handleSuccess ( response, { session: this.makeSession ( user, env.SIGNING_KEY_FOR_SESSION )});
@@ -370,6 +370,7 @@ export class UsersREST {
             }
         }
         catch ( error ) {
+            console.log ( error );
             rest.handleError ( response, error );
             return;
         }
@@ -384,16 +385,8 @@ export class UsersREST {
             console.log ( 'PUT INVITATION' );
 
             const email         = request.body.email;
-            const emailMD5      = request.params.emailMD5;
+            const emailMD5      = crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' );
 
-            console.log ( email, emailMD5 );
-
-            if ( crypto.createHash ( 'md5' ).update ( email ).digest ( 'hex' ) !== emailMD5 ) {
-                console.log ( 'emailMD5 did not match!' );
-                rest.handleError ( response, 403 );
-                return;
-            }
-            
             const conn = this.db.makeConnection ();
     
             if ( !( await this.db.users.hasUserByEmailMD5Async ( conn, emailMD5 ))) {

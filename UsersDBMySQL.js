@@ -51,9 +51,9 @@ export class UsersDBMySQL {
                 await conn.query (`
                     UPDATE  ${ env.USERSDB_MYSQL_TABLE }
                     SET     username    = '${ user.username }',
-                            password    = '${ user.password }'
+                            password    = '${ user.password }',
                             emailMD5    = '${ user.emailMD5 }',
-                            role        = '${ role }',,
+                            role        = '${ role }'
                     WHERE   id          = ${ existingUser.id }
                 `);
 

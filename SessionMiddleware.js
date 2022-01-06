@@ -20,7 +20,7 @@ export class SessionMiddleware {
     }
 
     //----------------------------------------------------------------//
-    checkUser ( checkUser ) {
+    checkUser ( checkFunc ) {
         
         return async ( request, result, next ) => {
 
@@ -35,7 +35,7 @@ export class SessionMiddleware {
                 const user = await this.db.users.getUserByIDAsync ( conn, request.userID );
 
                 if ( user ) {
-                    if ( !checkUser || checkUser ( user )) {
+                    if ( !checkFunc || checkFunc ( user )) {
                         request.user = user;
                         next ();
                         return;
