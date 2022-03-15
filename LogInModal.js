@@ -1,6 +1,5 @@
 /* eslint-disable no-whitespace-before-property */
 
-
 import { FormErrors }                           from './FormErrors';
 import { LogInController }                      from './LogInController';
 import { SessionController }                    from './SessionController';

@@ -5,7 +5,6 @@ import * as roles                   from './roles';
 import { SessionMiddleware }        from './SessionMiddleware';
 import * as token                   from './token';
 import bcrypt                       from 'bcryptjs';
-import * as consts                  from 'consts';
 import crypto                       from 'crypto';
 import * as env                     from 'env';
 import express                      from 'express';

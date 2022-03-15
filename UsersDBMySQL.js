@@ -3,7 +3,6 @@
 import * as roles                                       from './roles';
 import { assert, ModelError, ERROR_STATUS }             from 'fgc';
 import bcrypt                                           from 'bcryptjs';
-import * as consts                                      from 'consts';
 import crypto                                           from 'crypto';
 import _                                                from 'lodash';
 import * as env                                         from 'env';
