@@ -19,6 +19,11 @@ const ROLE_OPTIONS = [
         value:  roles.STANDARD_ROLES.ADMIN,
         text:   'Admin',
     },
+    {
+        key:    roles.STANDARD_ROLES.BLOCKED,
+        value:  roles.STANDARD_ROLES.BLOCKED,
+        text:   'Block',
+    },
 ];    
 
 //================================================================//
